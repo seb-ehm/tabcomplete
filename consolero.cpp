@@ -111,5 +111,3 @@ void Consolero::Cin()
 
 	}
 }
-
-#endif
