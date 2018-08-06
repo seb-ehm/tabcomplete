@@ -76,21 +76,9 @@ void Consolero::Cin()
 						}
 						else {
 
-							GetConsoleScreenBufferInfo(hStdout, &lConsoleScreenBufferInfo);
-							COORD currentCoord = lConsoleScreenBufferInfo.dwCursorPosition;
+							
 							if (event.wVirtualKeyCode == 8) { //Backspace
-								CHAR_INFO space;
-								space.Char.AsciiChar = ' ';
-								space.Attributes = 0;// FOREGROUND_BLUE | FOREGROUND_GREEN |
-													 //FOREGROUND_INTENSITY;
-								short newX = currentCoord.X - 1;
-								short newY = currentCoord.Y;
-								COORD newCoord = { newX, newY };
-								SMALL_RECT consoleWriteArea = { newX, newY, newX, newY };
-								if (!WriteConsoleOutput(hStdout, &space, { 1,1 }, { 0,0 }, &consoleWriteArea)) {
-									ErrorExit(TEXT("WCO"));
-								};
-								SetConsoleCursorPosition(hStdout, newCoord);
+								Backspace();
 							}
 
 							else if (iswprint(event.uChar.UnicodeChar)) {
@@ -110,4 +98,24 @@ void Consolero::Cin()
 		}
 
 	}
+}
+
+void Consolero::Backspace()
+{
+	CONSOLE_SCREEN_BUFFER_INFO lConsoleScreenBufferInfo;
+	GetConsoleScreenBufferInfo(hStdout, &lConsoleScreenBufferInfo);
+	COORD currentCoord = lConsoleScreenBufferInfo.dwCursorPosition;
+	CHAR_INFO space;
+	space.Char.AsciiChar = ' ';
+	space.Attributes = 0;// FOREGROUND_BLUE | FOREGROUND_GREEN |
+						 //FOREGROUND_INTENSITY;
+	short newX = currentCoord.X - 1;
+	short newY = currentCoord.Y;
+	COORD newCoord = { newX, newY };
+	SMALL_RECT consoleWriteArea = { newX, newY, newX, newY };
+	if (!WriteConsoleOutput(hStdout, &space, { 1,1 }, { 0,0 }, &consoleWriteArea)) {
+		ErrorExit(TEXT("WCO"));
+	};
+	SetConsoleCursorPosition(hStdout, newCoord);
+
 }

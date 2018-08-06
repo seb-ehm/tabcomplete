@@ -18,6 +18,9 @@ public:
 	void Cin();
 
 private:
+
+	void Backspace();
+
 	HANDLE hStdin;
 	HANDLE hStdout;
 	DWORD  m_OldConsoleMode;
