@@ -18,7 +18,7 @@ public:
 	void Cin();
 
 private:
-
+	void handleKeyEvent(const KEY_EVENT_RECORD& keyEvent);
 	void Backspace();
 
 	HANDLE hStdin;

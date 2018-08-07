@@ -41,7 +41,6 @@ Consolero::Consolero()
 	hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
 
 	//disable mouse input capture
-	DWORD dwConsoleMode;
 	GetConsoleMode(hStdin, &m_OldConsoleMode);
 	SetConsoleMode(hStdin, (~ENABLE_MOUSE_INPUT) & m_OldConsoleMode);
 	DWORD dwConsoleModeMod;
@@ -63,41 +62,77 @@ void Consolero::Cin()
 	while (1) {
 		ReadConsoleInput(hStdin, irInBuf, bufferSize, &cNumRead);
 
-		for (unsigned int i = 0; i< cNumRead; i++)
+		for (unsigned int i = 0; i < cNumRead; i++)
 		{
 			switch (irInBuf[i].EventType)
 			{
 			case KEY_EVENT:
 				KEY_EVENT_RECORD & event = irInBuf[i].Event.KeyEvent;
 				for (unsigned int j = 0; j < event.wRepeatCount; j++) {
+					//printf("*%u*", irInBuf[i].Event.KeyEvent.wVirtualKeyCode);
 					if (event.bKeyDown) {
-						if (event.uChar.UnicodeChar == '\t') {
-							printf("TAB");
-						}
-						else {
-
-							
-							if (event.wVirtualKeyCode == 8) { //Backspace
-								Backspace();
-							}
-
-							else if (iswprint(event.uChar.UnicodeChar)) {
-								printf("%c", event.uChar.UnicodeChar);
-							}
-							else {
-								printf("|?|");
-							}
-							//printf("*%u*", irInBuf[i].Event.KeyEvent.wVirtualKeyCode);
-							//printf("x%ux", irInBuf[i].Event.KeyEvent.uChar.AsciiChar);
-							//printf("%u", lConsoleScreenBufferInfo.dwCursorPosition.X);
-						}
+						handleKeyEvent(event);
+						//printf("*%u*", irInBuf[i].Event.KeyEvent.wVirtualKeyCode);
+						//printf("x%ux", irInBuf[i].Event.KeyEvent.uChar.AsciiChar);
+						//printf("%u", lConsoleScreenBufferInfo.dwCursorPosition.X)
 					}
 				}
-			};
-
-		}
+			}
+		};
 
 	}
+
+}
+
+
+void Consolero::handleKeyEvent(const KEY_EVENT_RECORD& keyEvent)
+{
+	if (keyEvent.wVirtualKeyCode == 9) //Tab
+	{
+		printf("TAB");
+	}
+	else if (keyEvent.wVirtualKeyCode == 8) // Backspace
+	{
+		Backspace();
+	}
+	else if (keyEvent.wVirtualKeyCode == 27) // ESC
+	{
+	}
+	else if (keyEvent.wVirtualKeyCode == 46) // DEL
+	{
+	}
+	else if (keyEvent.wVirtualKeyCode == 27) // ESC
+	{
+	}
+	else if (keyEvent.wVirtualKeyCode == 37) // Arrow Left
+	{
+	}
+	else if (keyEvent.wVirtualKeyCode == 38) // Arrow Up
+	{
+	}
+	else if (keyEvent.wVirtualKeyCode == 39) // Arrow Right
+	{
+	}
+	else if (keyEvent.wVirtualKeyCode == 40) // Arrow Down
+	{
+	}
+	else if (keyEvent.wVirtualKeyCode == 120) // Pos1
+	{
+	}
+	else if (keyEvent.wVirtualKeyCode == 121) // END
+	{
+	}
+	else if (keyEvent.wVirtualKeyCode == 112) // F1
+	{
+	}
+	else if (iswprint(keyEvent.uChar.UnicodeChar)) {
+		printf("%c", keyEvent.uChar.UnicodeChar);
+	}
+	else {
+		printf("|?|");
+	}
+
+;
 }
 
 void Consolero::Backspace()
