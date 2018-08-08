@@ -45,6 +45,18 @@ Consolero::Consolero()
 	SetConsoleMode(hStdin, (~ENABLE_MOUSE_INPUT) & m_OldConsoleMode);
 	DWORD dwConsoleModeMod;
 	GetConsoleMode(hStdin, &dwConsoleModeMod);
+
+	//set initial coordinate
+	CONSOLE_SCREEN_BUFFER_INFO lConsoleScreenBufferInfo;
+	GetConsoleScreenBufferInfo(hStdout, &lConsoleScreenBufferInfo);
+	m_InitialCoord = lConsoleScreenBufferInfo.dwCursorPosition;
+
+	m_currentLine.cursorPosition = 0;
+	m_currentLine.start = m_InitialCoord;
+	CHAR_INFO space;
+	space.Char.AsciiChar = ' ';
+	space.Attributes = 0;
+	m_currentLine.content.push_back(space);
 }
 
 Consolero::~Consolero()
@@ -106,12 +118,15 @@ void Consolero::handleKeyEvent(const KEY_EVENT_RECORD& keyEvent)
 	}
 	else if (keyEvent.wVirtualKeyCode == 37) // Arrow Left
 	{
+		m_currentLine.moveCursor(-1);
 	}
 	else if (keyEvent.wVirtualKeyCode == 38) // Arrow Up
 	{
+		
 	}
 	else if (keyEvent.wVirtualKeyCode == 39) // Arrow Right
 	{
+		m_currentLine.moveCursor(+1);
 	}
 	else if (keyEvent.wVirtualKeyCode == 40) // Arrow Down
 	{
@@ -126,31 +141,74 @@ void Consolero::handleKeyEvent(const KEY_EVENT_RECORD& keyEvent)
 	{
 	}
 	else if (iswprint(keyEvent.uChar.UnicodeChar)) {
-		printf("%c", keyEvent.uChar.UnicodeChar);
+		m_currentLine.content.at(m_currentLine.cursorPosition).Char.UnicodeChar = keyEvent.uChar.UnicodeChar;
+		m_currentLine.content.at(m_currentLine.cursorPosition).Attributes = FOREGROUND_BLUE|FOREGROUND_GREEN|FOREGROUND_RED;
+		m_currentLine.cursorPosition += 1;
+		if (m_currentLine.cursorPosition == m_currentLine.content.size()) {
+			CHAR_INFO space;
+			space.Char.AsciiChar = ' ';
+			space.Attributes = 0;
+			m_currentLine.content.push_back(space);
+		}
+		//TODO: Currently works as if "Insert" was activated on keyboard
+		//printf("%c", keyEvent.uChar.UnicodeChar);
 	}
 	else {
 		printf("|?|");
 	}
+	displayLine(m_currentLine);
 
 ;
 }
 
-void Consolero::Backspace()
+bool Consolero::moveCursor(SHORT linearChange)
 {
 	CONSOLE_SCREEN_BUFFER_INFO lConsoleScreenBufferInfo;
 	GetConsoleScreenBufferInfo(hStdout, &lConsoleScreenBufferInfo);
 	COORD currentCoord = lConsoleScreenBufferInfo.dwCursorPosition;
-	CHAR_INFO space;
-	space.Char.AsciiChar = ' ';
-	space.Attributes = 0;// FOREGROUND_BLUE | FOREGROUND_GREEN |
-						 //FOREGROUND_INTENSITY;
-	short newX = currentCoord.X - 1;
-	short newY = currentCoord.Y;
-	COORD newCoord = { newX, newY };
-	SMALL_RECT consoleWriteArea = { newX, newY, newX, newY };
-	if (!WriteConsoleOutput(hStdout, &space, { 1,1 }, { 0,0 }, &consoleWriteArea)) {
-		ErrorExit(TEXT("WCO"));
-	};
-	SetConsoleCursorPosition(hStdout, newCoord);
+	short delta = 1;
+	if (linearChange < 0) {
+		delta = -1;
+	}
+	while (linearChange != 0) {
 
+	}
+
+	return false;
+}
+
+void Consolero::displayLine(const ConsoleLine & line)
+{
+	CONSOLE_SCREEN_BUFFER_INFO lConsoleScreenBufferInfo;
+	GetConsoleScreenBufferInfo(hStdout, &lConsoleScreenBufferInfo);
+
+	COORD& bufferSize = lConsoleScreenBufferInfo.dwSize;
+	COORD current = line.start;
+
+	for (int i = 0; i < line.content.size(); ++i) {
+		SMALL_RECT consoleWriteArea = { current.X, current.Y, current.X, current.Y };
+		WriteConsoleOutput(hStdout, &line.content.at(i), { 1,1 }, { 0,0 }, &consoleWriteArea);
+		if (i == line.cursorPosition) {
+			SetConsoleCursorPosition(hStdout, current);
+		}
+
+		if (current.X == bufferSize.X - 1) {
+			current.Y = current.Y + 1;
+			current.X = 0;
+		}
+		else {
+			current.X += 1;
+		}
+
+		// TODO: Scroll Buffer when Y-Max is reached!
+	}
+}
+
+void Consolero::Backspace()
+{
+	auto& cursorPosition = m_currentLine.cursorPosition;
+	if (cursorPosition > 0) {
+		m_currentLine.content.erase(m_currentLine.content.begin() + cursorPosition - 1);
+	}
+	cursorPosition -= 1;
 }
