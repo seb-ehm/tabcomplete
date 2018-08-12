@@ -18,12 +18,19 @@ struct ConsoleLine {
 
 	void moveCursor(SHORT steps) {
 		if (steps > 0) {
-			cursorPosition = (cursorPosition + steps > content.size() ? content.size() : cursorPosition + steps);
+			cursorPosition = (cursorPosition + steps >= content.size()-1 ? content.size()-1 : cursorPosition + steps);
 		}
 		else
 		{
 			cursorPosition = (cursorPosition + steps >= 0 ? cursorPosition + steps : 0);
 		}
+	}
+
+	void addSpace() {
+		CHAR_INFO space;
+		space.Char.AsciiChar = ' ';
+		space.Attributes = 0;
+		content.push_back(space);
 	}
 };
 
@@ -36,9 +43,11 @@ public:
 
 private:
 	void handleKeyEvent(const KEY_EVENT_RECORD& keyEvent);
-	bool moveCursor(SHORT linearChange);
 	void displayLine(const ConsoleLine& line);
-	void Backspace();
+	void clearLine(ConsoleLine& line);
+	void backspace();
+	void escape();
+	void del();
 
 	HANDLE hStdin;
 	HANDLE hStdout;

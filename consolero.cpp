@@ -53,10 +53,7 @@ Consolero::Consolero()
 
 	m_currentLine.cursorPosition = 0;
 	m_currentLine.start = m_InitialCoord;
-	CHAR_INFO space;
-	space.Char.AsciiChar = ' ';
-	space.Attributes = 0;
-	m_currentLine.content.push_back(space);
+	m_currentLine.addSpace();
 }
 
 Consolero::~Consolero()
@@ -105,16 +102,15 @@ void Consolero::handleKeyEvent(const KEY_EVENT_RECORD& keyEvent)
 	}
 	else if (keyEvent.wVirtualKeyCode == 8) // Backspace
 	{
-		Backspace();
+		backspace();
 	}
 	else if (keyEvent.wVirtualKeyCode == 27) // ESC
 	{
+		escape();
 	}
 	else if (keyEvent.wVirtualKeyCode == 46) // DEL
 	{
-	}
-	else if (keyEvent.wVirtualKeyCode == 27) // ESC
-	{
+		del();
 	}
 	else if (keyEvent.wVirtualKeyCode == 37) // Arrow Left
 	{
@@ -131,26 +127,30 @@ void Consolero::handleKeyEvent(const KEY_EVENT_RECORD& keyEvent)
 	else if (keyEvent.wVirtualKeyCode == 40) // Arrow Down
 	{
 	}
-	else if (keyEvent.wVirtualKeyCode == 120) // Pos1
+	else if (keyEvent.wVirtualKeyCode == 0x0024) // Pos1
 	{
+		m_currentLine.cursorPosition = 0;
 	}
-	else if (keyEvent.wVirtualKeyCode == 121) // END
+	else if (keyEvent.wVirtualKeyCode == 0x0023) // END
 	{
+		m_currentLine.cursorPosition = m_currentLine.content.size()-1;
 	}
 	else if (keyEvent.wVirtualKeyCode == 112) // F1
 	{
 	}
 	else if (iswprint(keyEvent.uChar.UnicodeChar)) {
-		m_currentLine.content.at(m_currentLine.cursorPosition).Char.UnicodeChar = keyEvent.uChar.UnicodeChar;
-		m_currentLine.content.at(m_currentLine.cursorPosition).Attributes = FOREGROUND_BLUE|FOREGROUND_GREEN|FOREGROUND_RED;
+		CHAR_INFO newChar{ keyEvent.uChar.UnicodeChar };
+		newChar.Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED;;
+		m_currentLine.content.insert(m_currentLine.content.begin() + m_currentLine.cursorPosition, newChar);
+
+		//TODO: Enable insert mode
+		//m_currentLine.content.at(m_currentLine.cursorPosition).Char.UnicodeChar = keyEvent.uChar.UnicodeChar;
+		//m_currentLine.content.at(m_currentLine.cursorPosition).Attributes = FOREGROUND_BLUE|FOREGROUND_GREEN|FOREGROUND_RED;
 		m_currentLine.cursorPosition += 1;
 		if (m_currentLine.cursorPosition == m_currentLine.content.size()) {
-			CHAR_INFO space;
-			space.Char.AsciiChar = ' ';
-			space.Attributes = 0;
-			m_currentLine.content.push_back(space);
+			m_currentLine.addSpace();
 		}
-		//TODO: Currently works as if "Insert" was activated on keyboard
+
 		//printf("%c", keyEvent.uChar.UnicodeChar);
 	}
 	else {
@@ -159,22 +159,6 @@ void Consolero::handleKeyEvent(const KEY_EVENT_RECORD& keyEvent)
 	displayLine(m_currentLine);
 
 ;
-}
-
-bool Consolero::moveCursor(SHORT linearChange)
-{
-	CONSOLE_SCREEN_BUFFER_INFO lConsoleScreenBufferInfo;
-	GetConsoleScreenBufferInfo(hStdout, &lConsoleScreenBufferInfo);
-	COORD currentCoord = lConsoleScreenBufferInfo.dwCursorPosition;
-	short delta = 1;
-	if (linearChange < 0) {
-		delta = -1;
-	}
-	while (linearChange != 0) {
-
-	}
-
-	return false;
 }
 
 void Consolero::displayLine(const ConsoleLine & line)
@@ -204,11 +188,42 @@ void Consolero::displayLine(const ConsoleLine & line)
 	}
 }
 
-void Consolero::Backspace()
+void Consolero::clearLine(ConsoleLine & line)
+{
+	CHAR_INFO space;
+	space.Char.AsciiChar = ' ';
+	space.Attributes = 0;
+	
+	for (int i = 0; i < line.content.size(); ++i) {
+		line.content[i] = space;
+	}
+
+}
+
+void Consolero::backspace()
 {
 	auto& cursorPosition = m_currentLine.cursorPosition;
 	if (cursorPosition > 0) {
 		m_currentLine.content.erase(m_currentLine.content.begin() + cursorPosition - 1);
 	}
 	cursorPosition -= 1;
+}
+
+void Consolero::escape()
+{
+	clearLine(m_currentLine);
+	displayLine(m_currentLine);
+	m_currentLine.content.clear();
+	m_currentLine.addSpace();
+	m_currentLine.cursorPosition = 0;
+
+}
+
+void Consolero::del()
+{
+	auto& cursorPosition = m_currentLine.cursorPosition;
+	if ( cursorPosition < m_currentLine.content.size() -1 ) {
+		m_currentLine.content.erase(m_currentLine.content.begin() + cursorPosition);
+	}
+	//cursorPosition -= 1;
 }
