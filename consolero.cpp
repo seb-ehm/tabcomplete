@@ -62,13 +62,14 @@ Consolero::~Consolero()
 	SetConsoleMode(hStdin, m_OldConsoleMode);
 }
 
-void Consolero::Cin()
+std::wstring Consolero::Cin()
 {
 	const int bufferSize = 128;
 	INPUT_RECORD irInBuf[bufferSize];
 	unsigned long cNumRead;
 	CONSOLE_SCREEN_BUFFER_INFO lConsoleScreenBufferInfo;
-	while (1) {
+    bool lineFinished = false;
+	while (!lineFinished) {
 		ReadConsoleInput(hStdin, irInBuf, bufferSize, &cNumRead);
 
 		for (unsigned int i = 0; i < cNumRead; i++)
@@ -80,7 +81,7 @@ void Consolero::Cin()
 				for (unsigned int j = 0; j < event.wRepeatCount; j++) {
 					//printf("*%u*", irInBuf[i].Event.KeyEvent.wVirtualKeyCode);
 					if (event.bKeyDown) {
-						handleKeyEvent(event);
+						lineFinished = handleKeyEvent(event);
 						//printf("*%u*", irInBuf[i].Event.KeyEvent.wVirtualKeyCode);
 						//printf("x%ux", irInBuf[i].Event.KeyEvent.uChar.AsciiChar);
 						//printf("%u", lConsoleScreenBufferInfo.dwCursorPosition.X)
@@ -90,16 +91,28 @@ void Consolero::Cin()
 		};
 
 	}
+    std::wstring result;
+    for (int i = 0; i < m_currentLine.content.size(); ++i) {
+        result += m_currentLine.content[i].Char.UnicodeChar;
+    }
+    return result;
 
 }
 
 
-void Consolero::handleKeyEvent(const KEY_EVENT_RECORD& keyEvent)
+bool Consolero::handleKeyEvent(const KEY_EVENT_RECORD& keyEvent)
 {
+    bool lineFinished = false;
 	if (keyEvent.wVirtualKeyCode == 9) //Tab
 	{
 		printf("TAB");
 	}
+    else if (keyEvent.wVirtualKeyCode == 0x0D) // enter
+    {
+        lineFinished = true;
+        return lineFinished;
+       
+    }
 	else if (keyEvent.wVirtualKeyCode == 8) // Backspace
 	{
 		backspace();
@@ -139,6 +152,7 @@ void Consolero::handleKeyEvent(const KEY_EVENT_RECORD& keyEvent)
 	{
 	}
 	else if (iswprint(keyEvent.uChar.UnicodeChar)) {
+        //keyEvent.wVirtualKeyCode
 		CHAR_INFO newChar{ keyEvent.uChar.UnicodeChar };
 		newChar.Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED;;
 		m_currentLine.content.insert(m_currentLine.content.begin() + m_currentLine.cursorPosition, newChar);
@@ -157,7 +171,7 @@ void Consolero::handleKeyEvent(const KEY_EVENT_RECORD& keyEvent)
 		printf("|?|");
 	}
 	displayLine(m_currentLine);
-
+    return lineFinished;
 ;
 }
 
@@ -205,8 +219,9 @@ void Consolero::backspace()
 	auto& cursorPosition = m_currentLine.cursorPosition;
 	if (cursorPosition > 0) {
 		m_currentLine.content.erase(m_currentLine.content.begin() + cursorPosition - 1);
+        cursorPosition -= 1;
 	}
-	cursorPosition -= 1;
+	
 }
 
 void Consolero::escape()

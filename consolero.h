@@ -8,6 +8,7 @@
 #include <iostream>
 #include <cctype>
 #include <strsafe.h>
+#include <string>
 
 void ErrorExit(LPTSTR lpszFunction);
 
@@ -28,7 +29,7 @@ struct ConsoleLine {
 
 	void addSpace() {
 		CHAR_INFO space;
-		space.Char.AsciiChar = ' ';
+		space.Char.UnicodeChar = 0x20; //space
 		space.Attributes = 0;
 		content.push_back(space);
 	}
@@ -39,10 +40,10 @@ public:
 	Consolero();
 	~Consolero();
 
-	void Cin();
+	std::wstring Cin();
 
 private:
-	void handleKeyEvent(const KEY_EVENT_RECORD& keyEvent);
+	bool handleKeyEvent(const KEY_EVENT_RECORD& keyEvent);
 	void displayLine(const ConsoleLine& line);
 	void clearLine(ConsoleLine& line);
 	void backspace();
