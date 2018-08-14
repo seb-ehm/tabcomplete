@@ -1,7 +1,7 @@
 #include "consolero.h"
 
 void ErrorExit(LPTSTR lpszFunction)
-{
+{   //https://docs.microsoft.com/de-de/windows/desktop/Debug/retrieving-the-last-error-code
 	// Retrieve the system error message for the last-error code
 
 	LPVOID lpMsgBuf;
@@ -59,6 +59,7 @@ Consolero::Consolero()
     auto systemCodepage = GetACP();
     SetConsoleOutputCP(systemCodepage);
     SetConsoleCP(systemCodepage);
+
 }
 
 Consolero::~Consolero()
@@ -176,13 +177,14 @@ void Consolero::displayLine(const ConsoleLine & line)
 
 	COORD& bufferSize = lConsoleScreenBufferInfo.dwSize;
 	COORD current = line.start;
+	std::wstring output = stringToWstring(line.content);
 
-	for (int i = 0; i < line.content.size(); ++i) { //TODO: Replace character-wise loop with line-wise loop
+
+	for (int i = 0; i < output.size(); ++i) { //TODO: Replace character-wise loop with line-wise loop
 		SMALL_RECT consoleWriteArea = { current.X, current.Y, current.X, current.Y };
-        std::wstring output = stringToWstring(std::string(&line.content[i], 1));
 
         CHAR_INFO newChar;
-        newChar.Char.UnicodeChar = output[0]; //TODO: This is going to cause problems when output.size()>1!
+        newChar.Char.UnicodeChar = output[i]; 
         newChar.Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED;
 
 		WriteConsoleOutput(hStdout, &newChar, { 1,1 }, { 0,0 }, &consoleWriteArea);
