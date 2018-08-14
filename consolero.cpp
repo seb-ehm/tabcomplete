@@ -72,7 +72,6 @@ std::string Consolero::Cin()
 	const int bufferSize = 128;
 	INPUT_RECORD irInBuf[bufferSize];
 	unsigned long cNumRead;
-	CONSOLE_SCREEN_BUFFER_INFO lConsoleScreenBufferInfo;
     bool lineFinished = false;
 	while (!lineFinished) {
 		ReadConsoleInput(hStdin, irInBuf, bufferSize, &cNumRead);
@@ -84,28 +83,16 @@ std::string Consolero::Cin()
 			case KEY_EVENT:
 				KEY_EVENT_RECORD & event = irInBuf[i].Event.KeyEvent;
 				for (unsigned int j = 0; j < event.wRepeatCount; j++) {
-					//printf("*%u*", irInBuf[i].Event.KeyEvent.wVirtualKeyCode);
 					if (event.bKeyDown) {
 						lineFinished = handleKeyEvent(event);
-						//printf("*%u*", irInBuf[i].Event.KeyEvent.wVirtualKeyCode);
-						//printf("x%ux", irInBuf[i].Event.KeyEvent.uChar.AsciiChar);
-						//printf("%u", lConsoleScreenBufferInfo.dwCursorPosition.X)
 					}
 				}
 			}
 		};
 
 	}
-    std::wstring wresult;
-    for (int i = 0; i < m_currentLine.content.size(); ++i) {
-        wresult += m_currentLine.content[i].Char.UnicodeChar;
-    }
 
-    int sizeNeeded = WideCharToMultiByte(GetACP(), 0, &wresult[0], static_cast<int>(wresult.size()), NULL, 0, NULL, NULL);
-    std::string result(sizeNeeded, 0);
-    WideCharToMultiByte(GetACP(), 0, &wresult[0], static_cast<int>(wresult.size()), &result[0], sizeNeeded, NULL, NULL);
-
-    return result;
+    return m_currentLine.content;
 
 }
 
@@ -162,21 +149,17 @@ bool Consolero::handleKeyEvent(const KEY_EVENT_RECORD& keyEvent)
 	{
 	}
 	else if (iswprint(keyEvent.uChar.UnicodeChar)) {
-        //keyEvent.wVirtualKeyCode
-        CHAR_INFO newChar;
-        newChar.Char.UnicodeChar = keyEvent.uChar.UnicodeChar ;
-		newChar.Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED;;
-		m_currentLine.content.insert(m_currentLine.content.begin() + m_currentLine.cursorPosition, newChar);
-
+        
+        std::wstring wstr{ keyEvent.uChar.UnicodeChar };
+        std::string converted = wstringToString(wstr);
+        m_currentLine.content.insert(m_currentLine.cursorPosition, converted);
+       
 		//TODO: Enable insert mode
-		//m_currentLine.content.at(m_currentLine.cursorPosition).Char.UnicodeChar = keyEvent.uChar.UnicodeChar;
-		//m_currentLine.content.at(m_currentLine.cursorPosition).Attributes = FOREGROUND_BLUE|FOREGROUND_GREEN|FOREGROUND_RED;
+
 		m_currentLine.cursorPosition += 1;
 		if (m_currentLine.cursorPosition == m_currentLine.content.size()) {
 			m_currentLine.addSpace();
 		}
-
-		//printf("%c", keyEvent.uChar.UnicodeChar);
 	}
 	else {
 		printf("?");
@@ -194,9 +177,15 @@ void Consolero::displayLine(const ConsoleLine & line)
 	COORD& bufferSize = lConsoleScreenBufferInfo.dwSize;
 	COORD current = line.start;
 
-	for (int i = 0; i < line.content.size(); ++i) {
+	for (int i = 0; i < line.content.size(); ++i) { //TODO: Replace character-wise loop with line-wise loop
 		SMALL_RECT consoleWriteArea = { current.X, current.Y, current.X, current.Y };
-		WriteConsoleOutput(hStdout, &line.content.at(i), { 1,1 }, { 0,0 }, &consoleWriteArea);
+        std::wstring output = stringToWstring(std::string(&line.content[i], 1));
+
+        CHAR_INFO newChar;
+        newChar.Char.UnicodeChar = output[0]; //TODO: This is going to cause problems when output.size()>1!
+        newChar.Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED;
+
+		WriteConsoleOutput(hStdout, &newChar, { 1,1 }, { 0,0 }, &consoleWriteArea);
 		if (i == line.cursorPosition) {
 			SetConsoleCursorPosition(hStdout, current);
 		}
@@ -215,13 +204,29 @@ void Consolero::displayLine(const ConsoleLine & line)
 
 void Consolero::clearLine(ConsoleLine & line)
 {
-	CHAR_INFO space;
-	space.Char.AsciiChar = ' ';
-	space.Attributes = 0;
-	
 	for (int i = 0; i < line.content.size(); ++i) {
-		line.content[i] = space;
+		line.content[i] = ' ';
 	}
+
+}
+
+std::string Consolero::wstringToString(std::wstring w)
+{
+    auto systemCodepage = GetACP();
+    int size = WideCharToMultiByte(systemCodepage, 0, &w[0], static_cast<int>(w.size()), NULL, 0, NULL, NULL);
+    std::string converted(size, 0);
+    WideCharToMultiByte(systemCodepage, 0, &w[0], static_cast<int>(w.size()), &converted[0], size, NULL, NULL);
+    return converted;
+
+}
+
+std::wstring Consolero::stringToWstring(std::string c)
+{
+    auto systemCodepage = GetACP();
+    int size = MultiByteToWideChar(systemCodepage, 0, &c[0], static_cast<int>(c.size()), NULL, 0);
+    std::wstring converted(size, 0);
+    MultiByteToWideChar(systemCodepage, 0, &c[0], static_cast<int>(c.size()), &converted[0], size);
+    return converted;
 
 }
 

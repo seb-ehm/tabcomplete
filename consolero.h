@@ -14,8 +14,8 @@ void ErrorExit(LPTSTR lpszFunction);
 
 struct ConsoleLine {
 	COORD start;
-	std::vector<CHAR_INFO> content;
-	std::vector<CHAR_INFO>::size_type cursorPosition;
+	std::string content;
+	std::string::size_type cursorPosition;
 
 	void moveCursor(SHORT steps) {
 		if (steps > 0) {
@@ -28,10 +28,10 @@ struct ConsoleLine {
 	}
 
 	void addSpace() {
-		CHAR_INFO space;
-		space.Char.UnicodeChar = 0x20; //space
-		space.Attributes = 0;
-		content.push_back(space);
+		//CHAR_INFO space;
+		//space.Char.UnicodeChar = 0x20; //space
+		//space.Attributes = 0;
+		content.push_back(' ');
 	}
 };
 
@@ -46,6 +46,10 @@ private:
 	bool handleKeyEvent(const KEY_EVENT_RECORD& keyEvent);
 	void displayLine(const ConsoleLine& line);
 	void clearLine(ConsoleLine& line);
+
+    std::string  wstringToString(std::wstring w);
+    std::wstring stringToWstring(std::string c);
+
 	void backspace();
 	void escape();
 	void del();
