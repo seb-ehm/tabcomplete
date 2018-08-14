@@ -54,6 +54,11 @@ Consolero::Consolero()
 	m_currentLine.cursorPosition = 0;
 	m_currentLine.start = m_InitialCoord;
 	m_currentLine.addSpace();
+
+    //Set keyboard codepage according to system settings
+    auto systemCodepage = GetACP();
+    SetConsoleOutputCP(systemCodepage);
+    SetConsoleCP(systemCodepage);
 }
 
 Consolero::~Consolero()
@@ -62,7 +67,7 @@ Consolero::~Consolero()
 	SetConsoleMode(hStdin, m_OldConsoleMode);
 }
 
-std::wstring Consolero::Cin()
+std::string Consolero::Cin()
 {
 	const int bufferSize = 128;
 	INPUT_RECORD irInBuf[bufferSize];
@@ -91,10 +96,15 @@ std::wstring Consolero::Cin()
 		};
 
 	}
-    std::wstring result;
+    std::wstring wresult;
     for (int i = 0; i < m_currentLine.content.size(); ++i) {
-        result += m_currentLine.content[i].Char.UnicodeChar;
+        wresult += m_currentLine.content[i].Char.UnicodeChar;
     }
+
+    int sizeNeeded = WideCharToMultiByte(GetACP(), 0, &wresult[0], static_cast<int>(wresult.size()), NULL, 0, NULL, NULL);
+    std::string result(sizeNeeded, 0);
+    WideCharToMultiByte(GetACP(), 0, &wresult[0], static_cast<int>(wresult.size()), &result[0], sizeNeeded, NULL, NULL);
+
     return result;
 
 }
@@ -153,7 +163,8 @@ bool Consolero::handleKeyEvent(const KEY_EVENT_RECORD& keyEvent)
 	}
 	else if (iswprint(keyEvent.uChar.UnicodeChar)) {
         //keyEvent.wVirtualKeyCode
-		CHAR_INFO newChar{ keyEvent.uChar.UnicodeChar };
+        CHAR_INFO newChar;
+        newChar.Char.UnicodeChar = keyEvent.uChar.UnicodeChar ;
 		newChar.Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED;;
 		m_currentLine.content.insert(m_currentLine.content.begin() + m_currentLine.cursorPosition, newChar);
 
@@ -168,7 +179,7 @@ bool Consolero::handleKeyEvent(const KEY_EVENT_RECORD& keyEvent)
 		//printf("%c", keyEvent.uChar.UnicodeChar);
 	}
 	else {
-		printf("|?|");
+		printf("?");
 	}
 	displayLine(m_currentLine);
     return lineFinished;

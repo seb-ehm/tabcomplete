@@ -40,7 +40,7 @@ public:
 	Consolero();
 	~Consolero();
 
-	std::wstring Cin();
+	std::string Cin();
 
 private:
 	bool handleKeyEvent(const KEY_EVENT_RECORD& keyEvent);
